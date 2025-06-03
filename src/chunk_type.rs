@@ -61,31 +61,31 @@ impl ChunkType {
         self.0
     }
 
-    fn at_byte(&self, idx: usize) -> char {
+    pub fn at_byte(&self, idx: usize) -> char {
         self.bytes()[idx] as char
     }
 
     
-    fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         !self.is_public() && self.is_reserved_bit_valid()
     }
 
     /// Check the ancilliary bit (bit 5 of first byte). Return true if critical.
-    fn is_critical(&self) -> bool {
+    pub fn is_critical(&self) -> bool {
         self.at_byte(0).is_uppercase()
     }
 
     /// Check the private bit (bit 5 of second byte). Return true if private.
-    fn is_public(&self) -> bool {
+    pub fn is_public(&self) -> bool {
         self.at_byte(1).is_uppercase()
     }
 
-    fn is_reserved_bit_valid(&self) -> bool {
+    pub fn is_reserved_bit_valid(&self) -> bool {
         self.at_byte(2).is_uppercase()
     }
 
     /// Check the safe-to-copy bit (bit 5 of fourth byte). Return true if safe to copy.
-    fn is_safe_to_copy(&self) -> bool {
+    pub fn is_safe_to_copy(&self) -> bool {
         self.at_byte(3).is_lowercase()
     }
 }

@@ -1,6 +1,8 @@
 use core::fmt;
+use std::str::FromStr;
 
 use crate::chunk::Chunk;
+use crate::chunk_type::ChunkType;
 
 
 #[derive(Debug)]
@@ -12,31 +14,83 @@ pub struct Png {
 impl TryFrom<&[u8]> for Png {
     type Error = &'static str;
     
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+		const MIN_SIZE: usize = 12;
+
+		let mut header: [u8; 8] = [0; 8];
+		header.clone_from_slice(&bytes[..8]);
+		
+		if header != Png::STANDARD_HEADER {
+			return Err("Invalid header");
+		}
+
+		let mut chunks: Vec<Chunk> = Vec::new();
+		let mut idx: usize = 8;
+		loop {
+			if idx == bytes.len() { break }
+
+			let length: u32 = u32::from_be_bytes(
+				bytes[idx..(idx + 4)]
+				.try_into()
+				.unwrap()
+			);
+			let end_idx: usize = idx + length as usize + MIN_SIZE;
+			let chunk_bytes = &bytes[idx..end_idx];
+			let chunk = Chunk::try_from(chunk_bytes).unwrap();
+			chunks.push(chunk);
+
+			idx = end_idx;
+		}
+
+		Ok(
+			Png {
+				header,
+				chunks
+			}
+		)
     }
 }
 
 impl fmt::Display for Png {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        for chunk in &self.chunks {
+
+            let chunk_type_str = chunk.chunk_type().to_string();
+
+            match String::from_utf8(chunk.data().to_vec()) {
+                Ok(text) => writeln!(f, "[{}] {}", chunk_type_str, text)?,
+                Err(e) => panic!("Invalid UTF-8: {}", e)
+            }
+        }
+        Ok(())
     }
 }
 
 impl Png {
-    const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+    pub const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
     fn from_chunks(chunks: Vec<Chunk>) -> Png {
-        todo!()
+        Png {
+            header: Png::STANDARD_HEADER,
+            chunks
+        }
     }
 
     fn append_chunk(&mut self, chunk: Chunk) {
-        todo!()
+        self.chunks.push(chunk)
     }
 
-    fn remove_first_chunk(&mut self, chunk_type: &str) -> Result<Chunk, Err> {
-        todo!()
-    }
+    fn remove_first_chunk(&mut self, chunk_type: &str) -> crate::Result<Chunk> {
+        let chunk_type_bytes = ChunkType::from_str(chunk_type).unwrap();
+        let bytes = chunk_type_bytes.bytes();
+
+        Ok(self.chunks.remove(
+            self.chunks
+                .iter()
+                .position(|x| x.chunk_type().bytes() == bytes)
+                .expect(format!("{} not found", chunk_type).as_str())
+        ))
+    } 
 
     fn header(&self) -> &[u8; 8] {
         &self.header
@@ -46,19 +100,35 @@ impl Png {
         &self.chunks
     }
 
-    fn chunk_by_type(&self, chunk_type: &str) -> Option<&str> {
-        todo!()
+    fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
+        let chunk_type_bytes: [u8; 4] = ChunkType::from_str(chunk_type)
+            .unwrap()
+            .bytes();
+
+        let item = self.chunks
+            .iter()
+            .position(|x| x.chunk_type().bytes() == chunk_type_bytes);
+
+        match item {
+            Some(idx) => Some(&self.chunks[idx]),
+            _ => None
+        }
     }
 
     fn as_bytes(&self) -> Vec<u8> {
-        todo!()
+		self.header
+			.iter()
+			.chain::<&Vec<u8>>(&self.chunks
+						.iter()
+						.flat_map(|chunk: &Chunk|  chunk.as_bytes())
+						.collect()
+			)
+			.copied()
+			.collect()
     }
 }
 
 
-
-#![allow(unused_variables)]
-fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,7 +150,7 @@ mod tests {
         Png::from_chunks(chunks)
     }
 
-    fn chunk_from_strings(chunk_type: &str, data: &str) -> Result<Chunk> {
+    fn chunk_from_strings(chunk_type: &str, data: &str) -> crate::Result<Chunk> {
         use std::str::FromStr;
 
         let chunk_type = ChunkType::from_str(chunk_type)?;
@@ -469,4 +539,4 @@ mod tests {
         160, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
     ];
 }
-}
+
