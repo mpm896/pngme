@@ -1,16 +1,14 @@
 use clap::{Parser, Subcommand};
 
-use crate::commands;
-
 /// A simple program to encode messages into PNG files and decode messages from PNG files
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Cli {
-    filename: String,
+    pub filename: String,
 
     #[command(subcommand)]
-    command: Commands,
+    pub command: Commands,
 }
 
 #[derive(Subcommand)]
