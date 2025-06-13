@@ -1,5 +1,5 @@
 use core::str;
-use std::fmt::{self, Error};
+use std::fmt;
 use std::str::FromStr;
 
 pub const CHUNK_SIZE: usize = 4;

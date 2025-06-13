@@ -11,6 +11,7 @@ pub struct Cli {
     pub command: Commands,
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Subcommand)]
 pub enum Commands {
     /// Encode a message. 

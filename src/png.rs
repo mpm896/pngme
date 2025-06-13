@@ -59,7 +59,7 @@ impl fmt::Display for Png {
 
             match String::from_utf8(chunk.data().to_vec()) {
                 Ok(text) => writeln!(f, "[{}] {}", chunk_type_str, text)?,
-                Err(e) => panic!("Invalid UTF-8: {}", e)
+                Err(_e) => continue // panic!("Invalid UTF-8: {}", e)
             }
         }
         Ok(())
@@ -69,18 +69,18 @@ impl fmt::Display for Png {
 impl Png {
     pub const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
-    fn from_chunks(chunks: Vec<Chunk>) -> Png {
+    pub fn from_chunks(chunks: Vec<Chunk>) -> Png {
         Png {
             header: Png::STANDARD_HEADER,
             chunks
         }
     }
 
-    fn append_chunk(&mut self, chunk: Chunk) {
+    pub fn append_chunk(&mut self, chunk: Chunk) {
         self.chunks.push(chunk)
     }
 
-    fn remove_first_chunk(&mut self, chunk_type: &str) -> crate::Result<Chunk> {
+    pub fn remove_first_chunk(&mut self, chunk_type: &str) -> crate::Result<Chunk> {
         let chunk_type_bytes = ChunkType::from_str(chunk_type).unwrap();
         let bytes = chunk_type_bytes.bytes();
 
@@ -134,7 +134,6 @@ mod tests {
     use super::*;
     use crate::chunk_type::ChunkType;
     use crate::chunk::Chunk;
-    use std::str::FromStr;
     use std::convert::TryFrom;
 
     fn testing_chunks() -> Vec<Chunk> {
