@@ -96,11 +96,11 @@ impl Png {
         &self.header
     }
 
-    fn chunks(&self) -> &[Chunk] {
+    pub fn chunks(&self) -> &[Chunk] {
         &self.chunks
     }
 
-    fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
+    pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
         let chunk_type_bytes: [u8; 4] = ChunkType::from_str(chunk_type)
             .unwrap()
             .bytes();
@@ -115,7 +115,7 @@ impl Png {
         }
     }
 
-    fn as_bytes(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
 		self.header
 			.iter()
 			.chain::<&Vec<u8>>(&self.chunks

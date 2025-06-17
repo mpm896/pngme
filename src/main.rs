@@ -1,4 +1,5 @@
 use std::fs::{self, File, OpenOptions};
+use std::io::Write;
 use std::str::FromStr;
 
 use clap::Parser;
@@ -24,15 +25,26 @@ fn main() -> Result<()> {
     // Collect passed args
     match &cli.command {
         Commands::encode { chunk_type, message, output } => {
-            encode_png(&mut png, chunk_type, message);
+            encode_png(&mut png, chunk_type, message)?;
             if let Some(out_file) = output {
-                write_png(out_file, &png);
+                write_png(out_file, &png)?;
             } else {
-                write_png(&cli.filename, &png);
+                write_png(&cli.filename, &png)?;
             }
         },
-        Commands::decode { chunk_type } => todo!(),
-        Commands::remove { chunk_type } => todo!(),
+        Commands::decode { chunk_type } => {
+            if let Ok(msg) = decode_msg(&png, chunk_type) {
+                println!("[{}], {}", chunk_type, msg)
+            }
+        },
+        Commands::remove { chunk_type } => {
+            if let Ok(msg) = remove_msg(&mut png, chunk_type) {
+                // Remove file and re-write the data
+                fs::remove_file(&cli.filename)?;
+                write_png(&cli.filename, &png)?;
+                println!("Removed message: [{}] {}", chunk_type, msg)
+            }
+        },
         Commands::print => print_chunks(&png)
     }
 
@@ -47,14 +59,17 @@ fn read_png(filename: &String) -> Result<Png> {
 }
 
 fn write_png(filename: &String, data: &Png) -> Result<()> {
-    let file: File = OpenOptions::new()
+    let mut file: File = OpenOptions::new()
                         .read(true)
                         .create(true)
-                        .append(true)
+                        .write(true)
                         .open(filename.as_str())?;
 
-    Ok(())
-                                
+    let bytes: Vec<u8> = data.as_bytes();
+
+    // Write all bytes to the file: Overwrite if file already exists, create new file if not
+    file.write(&bytes)?;
+    Ok(())               
 }
 
 fn encode_png<'a>(
@@ -72,12 +87,24 @@ fn encode_png<'a>(
     Ok(png)
 }
 
-fn decode_msg(png: &Png, chunk_type: &String) -> String {
-    todo!()
+fn decode_msg(png: &Png, chunk_type: &String) -> Result<String> {
+    // Get Option<&Chunk> if this chunk type is found in the png
+    if let Some(chunk) = png.chunk_by_type(chunk_type.as_str()) {
+        let msg: String = chunk.data_as_string()?;
+        Ok(msg)
+    } else {
+        Err("No message found.".into())
+    } 
 }
 
-fn remove_msg(png: &Png, chunk_type: &String) -> String {
-    todo!()
+fn remove_msg(png: &mut Png, chunk_type: &String) -> Result<String> {
+    // Search for chunktype in png file, remove it if present
+    if let Ok(chunk) = png.remove_first_chunk(chunk_type.as_str()) {
+        let msg: String = chunk.data_as_string()?;
+        Ok(msg)
+    } else {
+        Err("No message found.".into())
+    }
 }
 
 fn print_chunks(png: &Png) {
