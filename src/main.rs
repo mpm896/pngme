@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 
-use crate::{Cli, Commands};
+use crate::args::{Cli, Commands};
 use crate::chunk::Chunk;
 use crate::chunk_type::ChunkType;
 use crate::png::Png;
