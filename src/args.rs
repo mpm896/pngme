@@ -38,7 +38,7 @@ pub enum Commands {
 
 #[cfg(test)]
 mod test {
-    use crate::Cli;
+    use crate::args::Cli;
     use clap::CommandFactory;
 
     #[test]

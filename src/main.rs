@@ -1,19 +1,20 @@
-use std::fs::{self, File, OpenOptions};
-use std::io::Write;
+use std::fs;
 use std::str::FromStr;
 
 use clap::Parser;
 
-use crate::args::{Cli, Commands};
+use crate::{Cli, Commands};
 use crate::chunk::Chunk;
 use crate::chunk_type::ChunkType;
 use crate::png::Png;
+use crate::utils::{read_png, write_png};
 
 mod args;
 mod chunk;
 mod chunk_type;
 mod commands;
 mod png;
+mod utils;
 
 pub type Error = Box<dyn std::error::Error>;
 pub type Result<T> = std::result::Result<T, Error>;
@@ -49,27 +50,6 @@ fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-fn read_png(filename: &String) -> Result<Png> {
-    // Read a png from a file -> &[u8] -> Png
-    let data: &[u8] = &fs::read(filename)?[..];
-    let png: Png = Png::try_from(data)?;
-    Ok(png)
-}
-
-fn write_png(filename: &String, data: &Png) -> Result<()> {
-    let mut file: File = OpenOptions::new()
-                        .read(true)
-                        .create(true)
-                        .write(true)
-                        .open(filename.as_str())?;
-
-    let bytes: Vec<u8> = data.as_bytes();
-
-    // Write all bytes to the file: Overwrite if file already exists, create new file if not
-    file.write(&bytes)?;
-    Ok(())               
 }
 
 fn encode_png<'a>(
